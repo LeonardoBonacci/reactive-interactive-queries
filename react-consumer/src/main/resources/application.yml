@@ -1,7 +1,7 @@
 spring.cloud.stream.kafka.streams.binder.configuration.commit.interval.ms: 1000
 spring.cloud.stream.bindings.process-in-0:
-  destination: count-us
+  destination: products
 spring.cloud.stream.kafka.streams.binder:
-spring.application.name: count-service
+spring.application.name: there-we-go
 spring.cloud.stream.kafka.streams.binder.minPartitionCount: 4
 spring.cloud.stream.kafka.streams.binder.configuration.application.server: localhost:8080
