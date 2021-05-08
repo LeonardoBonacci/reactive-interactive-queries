@@ -40,6 +40,7 @@ public class ReactiveKafkaApp {
         		.doOnNext(rec -> log.info("Received {}", rec.value()))
         		.delayElements(Duration.ofSeconds(1))
         		.flatMap(m -> transform(m.key(), m.value()).map(j -> SenderRecord.create(j, m.receiverOffset())))
+        		.doOnNext(rec -> log.info("Sent {}", rec.value()))
                 .as(sender::send)
                 .doOnNext(m -> m.correlationMetadata().acknowledge())
                 .doOnCancel(() -> close());

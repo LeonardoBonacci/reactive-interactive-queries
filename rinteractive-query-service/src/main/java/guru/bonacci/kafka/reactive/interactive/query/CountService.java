@@ -23,34 +23,31 @@ public class CountService {
 	
 	
 	public Mono<CountBean> bitte(String id) {
-		log.info("Request for: " + id);
-
 		HostInfo hostInfo = interactiveQueryService.getHostInfo(App.STORE_NAME, id, new StringSerializer());
 		
 		return findLocal(hostInfo, id)
-				.switchIfEmpty(findRemote(hostInfo, id));
+				.switchIfEmpty(Mono.defer(() -> findRemote(hostInfo, id)));
 	}
 
 	private Mono<CountBean> findLocal(final HostInfo hostInfo, final String id) {
-		log.info("Request served from same host: " + hostInfo);
-
 		if (!interactiveQueryService.getCurrentHostInfo().equals(hostInfo))
 			return Mono.empty();
 
+		log.info("Request for {} served from same host: {}", id, hostInfo);
 		return Mono.fromCallable(() -> {
 			final ReadOnlyKeyValueStore<String, Long> store =
 					interactiveQueryService.getQueryableStore(App.STORE_NAME, QueryableStoreTypes.<String, Long>keyValueStore());
 
 			final Long count = store.get(id);
 			if (count == null) {
-				throw new NotFoundException("Abusing not found acception...");
+				throw new NotFoundException("Not found??");
 			}
 			return new CountBean(id, count);
 		}).subscribeOn(Schedulers.boundedElastic());
 	}
 	
 	private Mono<CountBean> findRemote(final HostInfo hostInfo, final String id) {
-		log.info("Request is served from different host: " + hostInfo);
+		log.info("Request for {} is served from different host: {}", id, hostInfo);
 
 		WebClient client = WebClient.create(String.format("http://%s:%d", hostInfo.host(), hostInfo.port()));
 		return client.get().uri("/count/" + id).retrieve().bodyToMono(CountBean.class);
