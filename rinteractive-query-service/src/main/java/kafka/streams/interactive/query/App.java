@@ -22,10 +22,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.stream.binder.kafka.streams.InteractiveQueryService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.support.serializer.JsonSerde;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import reactor.core.publisher.Mono;
 
 @SpringBootApplication
 public class App {
@@ -39,7 +41,7 @@ public class App {
 		SpringApplication.run(App.class, args);
 	}
 
-	public static class KStreamMusicSampleApplication {
+	public static class KStreamApp {
 
 		ReadOnlyKeyValueStore<Integer, Long> keyValueStore;
 
@@ -74,25 +76,16 @@ public class App {
 
 		private final Log logger = LogFactory.getLog(getClass());
 
-		@RequestMapping("/products/counter")
-		public CountBean products(@RequestParam(value="id") Integer id) {
+		@RequestMapping("/counter/{id}")
+		public Mono<CountBean> products(@PathVariable("id") Integer id) {
 			HostInfo hostInfo = interactiveQueryService.getHostInfo(App.STORE_NAME, id, new IntegerSerializer());
 			
-			if (interactiveQueryService.getCurrentHostInfo().equals(hostInfo)) {
-				logger.info("Request served from same host: " + hostInfo);
-				return findLocal(id);
-			}
-
-			else {
-				logger.info("Request is served from different host: " + hostInfo);
-				RestTemplate restTemplate = new RestTemplate();
-				return restTemplate.getForObject(
-							String.format("http://%s:%d/%s", hostInfo.host(), hostInfo.port(), "products/counter?id=" + id)
-						, CountBean.class);
-			}
+			return interactiveQueryService.getCurrentHostInfo().equals(hostInfo) ? 			
+					findLocal(hostInfo, id) : findRemote(hostInfo, id);
 		}
 
-		private CountBean findLocal(final Integer id) {
+		private Mono<CountBean> findLocal(final HostInfo hostInfo, final Integer id) {
+			logger.info("Request served from same host: " + hostInfo);
 			final ReadOnlyKeyValueStore<Integer, Long> productStore =
 					interactiveQueryService.getQueryableStore(App.STORE_NAME, QueryableStoreTypes.<Integer, Long>keyValueStore());
 
@@ -100,7 +93,15 @@ public class App {
 			if (count == null) {
 				throw new IllegalArgumentException("hi");
 			}
-			return new CountBean(id, count);
+			return Mono.just(new CountBean(id, count));
+		}
+		
+		private Mono<CountBean> findRemote(final HostInfo hostInfo, final Integer id) {
+			logger.info("Request is served from different host: " + hostInfo);
+
+			// cache me please...
+			WebClient client = WebClient.create(String.format("http://%s:%d", hostInfo.host(), hostInfo.port()));
+			return client.get().uri("/counter/" + id).retrieve().bodyToMono(CountBean.class);
 		}
 	}
 }
