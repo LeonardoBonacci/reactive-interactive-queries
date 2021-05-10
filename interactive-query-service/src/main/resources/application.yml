@@ -2,6 +2,6 @@ spring.cloud.stream.kafka.streams.binder.configuration.commit.interval.ms: 1000
 spring.cloud.stream.bindings.process-in-0:
   destination: count-us
 spring.cloud.stream.kafka.streams.binder:
-spring.application.name: react-count-service
+spring.application.name: count-service
 spring.cloud.stream.kafka.streams.binder.minPartitionCount: 4
 spring.cloud.stream.kafka.streams.binder.configuration.application.server: localhost:8080
