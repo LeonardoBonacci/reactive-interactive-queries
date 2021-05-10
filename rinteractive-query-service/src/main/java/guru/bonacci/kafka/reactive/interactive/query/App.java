@@ -23,10 +23,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
+import reactor.blockhound.BlockHound;
+
 @SpringBootApplication
 public class App {
 
 	static final String STORE_NAME = "count-store";
+
+	static {
+		BlockHound.install();
+	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(App.class, args);
