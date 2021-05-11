@@ -25,7 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 @SpringBootApplication
 public class App {
 
-	static final String STORE_NAME = "count-store";
+	static final String STORE_NAME = "act-count-store";
 
 	public static void main(String[] args) {
 		SpringApplication.run(App.class, args);
